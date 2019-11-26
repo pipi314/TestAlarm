@@ -7,18 +7,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import java.util.Calendar;
+
 public class AlarmManagerUtils {
 
-    private static final long TIME_INTERVAL = 5 * 1000;//闹钟执行任务的时间间隔
+    private static final long TIME_INTERVAL = 10 * 1000;//闹钟执行任务的时间间隔
     private Context context;
     public static AlarmManager am;
     public static PendingIntent pendingIntent;
+
+    private Calendar calendar;
     //
     private AlarmManagerUtils(Context aContext) {
         this.context = aContext;
     }
 
-    //饿汉式单例设计模式 singleton
+    //singleton
     private static AlarmManagerUtils instance = null;
 
     public static AlarmManagerUtils getInstance(Context aContext) {
@@ -34,29 +38,33 @@ public class AlarmManagerUtils {
 
     public void createGetUpAlarmManager() {
         am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent("com.shanya.testalarm.MY_BROADCAST");
-        intent.setPackage("com.shanya.testalarm");
-        intent.putExtra("msg", "赶紧起床");
-        pendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0);//每隔5秒发送一次广播
+        Intent intent = new Intent(context, MyService.class);
+        pendingIntent = PendingIntent.getService(context, 0, intent, 0);//每隔10秒启动一次服务
     }
 
     @SuppressLint("NewApi")
     public void getUpAlarmManagerStartWork() {
-        //版本适配
+
+        calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY,23);
+        calendar.set(Calendar.MINUTE,50);
+        calendar.set(Calendar.SECOND,00);
+
+        //版本适配 System.currentTimeMillis()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {// 6.0及以上
             am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
-                    System.currentTimeMillis(), pendingIntent);
+                    calendar.getTimeInMillis(), pendingIntent);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {// 4.4及以上
-            am.setExact(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(),
+            am.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                     pendingIntent);
         } else {
             am.setRepeating(AlarmManager.RTC_WAKEUP,
-                    System.currentTimeMillis(), TIME_INTERVAL, pendingIntent);
+                    calendar.getTimeInMillis(), TIME_INTERVAL, pendingIntent);
         }
     }
 
     @SuppressLint("NewApi")
-    public void getUpAlarmManagerWorkOnReceiver() {
+    public void getUpAlarmManagerWorkOnOthers() {
         //高版本重复设置闹钟达到低版本中setRepeating相同效果
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {// 6.0及以上
             am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
